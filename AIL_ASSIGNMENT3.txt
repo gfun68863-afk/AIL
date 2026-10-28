@@ -1,0 +1,81 @@
+
+import random
+
+class DynamicTrafficController:
+    def __init__(self, min_green=10, max_green=60, cycle_time=120):
+        self.min_green = min_green
+        self.max_green = max_green
+        self.cycle_time = cycle_time
+
+    def calculate_signal_timings(self, lane_densities):
+        lanes = list(lane_densities.keys())
+        timings = {lane: self.min_green for lane in lanes}
+
+        # Check whether the cycle can satisfy the minimum time
+        if self.cycle_time < len(lanes) * self.min_green:
+            raise ValueError("Cycle time is too short for minimum green times.")
+
+        # Check whether all lanes can receive the maximum time
+        if self.cycle_time > len(lanes) * self.max_green:
+            raise ValueError("Cycle time exceeds the maximum possible green times.")
+
+        remaining = self.cycle_time - sum(timings.values())
+        total_density = sum(max(0, lane_densities[lane]) for lane in lanes)
+
+        # Distribute remaining time according to traffic density
+        while remaining > 0:
+            eligible = [
+                lane for lane in lanes
+                if timings[lane] < self.max_green
+            ]
+
+            if not eligible:
+                break
+
+            eligible_density = sum(
+                max(0, lane_densities[lane]) for lane in eligible
+            )
+
+            if eligible_density == 0:
+                weights = {lane: 1 for lane in eligible}
+            else:
+                weights = {
+                    lane: max(0, lane_densities[lane])
+                    for lane in eligible
+                }
+
+            weight_total = sum(weights.values())
+
+            # Allocate one second at a time
+            for lane in eligible:
+                if remaining == 0:
+                    break
+
+                share = weights[lane] / weight_total
+
+                if share > 0 or eligible_density == 0:
+                    timings[lane] += 1
+                    remaining -= 1
+
+                    if timings[lane] >= self.max_green:
+                        continue
+
+        return timings
+
+
+# Simulate uncertain traffic sensor readings
+random.seed(42)
+
+sensor_data = {
+    'North_Lane': random.randint(5, 50),
+    'South_Lane': random.randint(5, 50),
+    'East_Lane': random.randint(5, 50),
+    'West_Lane': random.randint(5, 50)
+}
+
+controller = DynamicTrafficController()
+adjusted_green_times = controller.calculate_signal_timings(sensor_data)
+
+print("Traffic Density:", sensor_data)
+print("Green Timings (seconds):", adjusted_green_times)
+print("Total Green Time:", sum(adjusted_green_times.values()), "seconds")

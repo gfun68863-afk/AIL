@@ -1,0 +1,75 @@
+
+# Smart Parking Allocation System
+
+# Available Parking Slots
+slots = [
+    {'id': 'S1', 'type': 'EV', 'size': 'Medium',
+     'distance': 10, 'occupied': False},
+    {'id': 'S2', 'type': 'Regular', 'size': 'Compact',
+     'distance': 5, 'occupied': False},
+    {'id': 'S3', 'type': 'Regular', 'size': 'SUV',
+     'distance': 15, 'occupied': False},
+    {'id': 'S4', 'type': 'EV', 'size': 'SUV',
+     'distance': 20, 'occupied': False}
+]
+
+# Vehicle Allocation Requests
+requests = [
+    {'v_id': 'V101', 'size': 'SUV', 'is_ev': True},
+    {'v_id': 'V102', 'size': 'Compact', 'is_ev': False},
+    {'v_id': 'V103', 'size': 'SUV', 'is_ev': False}
+]
+
+# Size hierarchy
+size_hierarchy = {
+    'Compact': 1,
+    'Medium': 2,
+    'SUV': 3
+}
+
+
+def allocate_parking(vehicles, available_slots):
+    allocations = {}
+
+    for vehicle in vehicles:
+        best_slot = None
+        min_distance = float('inf')
+
+        # Check all parking slots
+        for slot in available_slots:
+
+            # Skip occupied slots
+            if slot['occupied']:
+                continue
+
+            # Hard constraint: EV vehicles need EV slots
+            if vehicle['is_ev'] and slot['type'] != 'EV':
+                continue
+
+            # Hard constraint: Slot must be large enough
+            if size_hierarchy[slot['size']] < size_hierarchy[vehicle['size']]:
+                continue
+
+            # Soft constraint: Select the nearest suitable slot
+            if slot['distance'] < min_distance:
+                min_distance = slot['distance']
+                best_slot = slot
+
+        # Allocate the selected slot
+        if best_slot is not None:
+            best_slot['occupied'] = True
+            allocations[vehicle['v_id']] = best_slot['id']
+        else:
+            allocations[vehicle['v_id']] = "No Suitable Slot"
+
+    return allocations
+
+
+# Run the parking allocation system
+result = allocate_parking(requests, slots)
+
+# Display results
+print("===== SMART PARKING ALLOCATION =====")
+
+for vehicle_id, slot_id in result.items():
+    print(vehicle_id, "->", slot_id)

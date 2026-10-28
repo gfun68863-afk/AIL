@@ -1,0 +1,143 @@
+
+import heapq
+import time
+
+# Graph of 9 cities with actual road distances (in km)
+graph = {
+    'Mumbai': [('Pune', 150), ('Nashik', 170)],
+    'Pune': [('Mumbai', 150), ('Satara', 110), ('Ahmednagar', 120)],
+    'Nashik': [('Mumbai', 170), ('Ahmednagar', 160), ('Dhule', 150)],
+    'Satara': [('Pune', 110), ('Kolhapur', 120)],
+    'Ahmednagar': [('Pune', 120), ('Nashik', 160), ('Aurangabad', 110)],
+    'Dhule': [('Nashik', 150), ('Aurangabad', 150)],
+    'Kolhapur': [('Satara', 120), ('Goa', 210)],
+    'Aurangabad': [('Ahmednagar', 110), ('Dhule', 150), ('Goa', 380)],
+    'Goa': [('Kolhapur', 210), ('Aurangabad', 380)]
+}
+
+# Heuristic values: estimated straight-line distances to Goa (km)
+# These are illustrative estimates for this example
+heuristics = {
+    'Mumbai': 450,
+    'Pune': 310,
+    'Nashik': 480,
+    'Satara': 200,
+    'Ahmednagar': 350,
+    'Dhule': 500,
+    'Kolhapur': 180,
+    'Aurangabad': 320,
+    'Goa': 0
+}
+
+
+# UNINFORMED SEARCH: Uniform Cost Search (UCS)
+def uniform_cost_search(start, goal):
+    pq = [(0, start, [start])]
+    best_cost = {}
+    nodes_expanded = 0
+
+    while pq:
+        cost, current, path = heapq.heappop(pq)
+
+        if current in best_cost and best_cost[current] <= cost:
+            continue
+
+        best_cost[current] = cost
+        nodes_expanded += 1
+
+        if current == goal:
+            return path, cost, nodes_expanded
+
+        for neighbor, distance in graph[current]:
+            if neighbor not in best_cost:
+                heapq.heappush(
+                    pq,
+                    (cost + distance, neighbor, path + [neighbor])
+                )
+
+    return None, float('inf'), nodes_expanded
+
+
+# INFORMED SEARCH: A* Search
+def a_star_search(start, goal):
+    # Queue entry: (f, g, current city, path)
+    pq = [(heuristics[start], 0, start, [start])]
+    best_cost = {}
+    nodes_expanded = 0
+
+    while pq:
+        f, g, current, path = heapq.heappop(pq)
+
+        if current in best_cost and best_cost[current] <= g:
+            continue
+
+        best_cost[current] = g
+        nodes_expanded += 1
+
+        if current == goal:
+            return path, g, nodes_expanded
+
+        for neighbor, distance in graph[current]:
+            new_g = g + distance
+            new_f = new_g + heuristics[neighbor]
+
+            if neighbor not in best_cost or new_g < best_cost[neighbor]:
+                heapq.heappush(
+                    pq,
+                    (new_f, new_g, neighbor, path + [neighbor])
+                )
+
+    return None, float('inf'), nodes_expanded
+
+
+# MAIN PROGRAM
+start_city = 'Mumbai'
+goal_city = 'Goa'
+
+# Run UCS and measure execution time
+start_time = time.perf_counter()
+ucs_path, ucs_distance, ucs_nodes = uniform_cost_search(
+    start_city, goal_city
+)
+ucs_time = time.perf_counter() - start_time
+
+# Run A* and measure execution time
+start_time = time.perf_counter()
+astar_path, astar_distance, astar_nodes = a_star_search(
+    start_city, goal_city
+)
+astar_time = time.perf_counter() - start_time
+
+
+# DISPLAY RESULTS
+print("========== UNINFORMED SEARCH: UCS ==========")
+if ucs_path:
+    print("Route:", " -> ".join(ucs_path))
+    print("Total Distance:", ucs_distance, "km")
+else:
+    print("No route found.")
+
+print("Nodes Expanded:", ucs_nodes)
+print("Execution Time:", f"{ucs_time:.8f}", "seconds")
+
+print("\n========== INFORMED SEARCH: A* ==========")
+if astar_path:
+    print("Route:", " -> ".join(astar_path))
+    print("Total Distance:", astar_distance, "km")
+else:
+    print("No route found.")
+
+print("Nodes Expanded:", astar_nodes)
+print("Execution Time:", f"{astar_time:.8f}", "seconds")
+
+print("\n========== COMPARISON ==========")
+print("UCS Distance:", ucs_distance, "km")
+print("A* Distance:", astar_distance, "km")
+
+if ucs_distance == astar_distance:
+    print("Result: Both algorithms found the same minimum distance.")
+else:
+    print("Result: The algorithms found different distances.")
+
+print("\nUCS Nodes Expanded:", ucs_nodes)
+print("A* Nodes Expanded:", astar_nodes)
